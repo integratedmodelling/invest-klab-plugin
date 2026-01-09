@@ -14,6 +14,7 @@ dependencies = [
   "taskgraph",
   "pygeoprocessing",
   "natcap.invest>=3.17.0",
+  "shapely>=2.0.7",
   "klab-client-py"
 ]
 
