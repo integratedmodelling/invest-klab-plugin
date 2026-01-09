@@ -17,8 +17,10 @@ MODEL_SPEC = spec.ModelSpec(
     module_name=__name__,
     userguide='https://github.com/AM1729/invest-klab-plugin/blob/main/README.md',
     input_field_order=[
-        ['workspace_dir', 'kim_semantic_query'],
-        ['aoi_path', 'factor']],
+        ['workspace_dir'],
+        ['kim_semantic_query'],
+        ['spatial_context'],
+        ['klab_certificate_path']]
     inputs=[
         spec.N_WORKERS,
         spec.FileInput(
@@ -57,11 +59,6 @@ MODEL_SPEC = spec.ModelSpec(
             about=gettext(
                 'Spatial Context following the WKT Format'),
             required=True
-        ),
-
-        spec.IntegerInput(
-            id="factor",
-            name="Multiplication Factor"
         )
     ],
     outputs=[
