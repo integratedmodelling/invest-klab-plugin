@@ -6,7 +6,7 @@ from natcap.invest import utils
 from natcap.invest.unit_registry import u
 from natcap.invest import gettext
 from natcap.invest import spec
-import klab_client_py
+from klab.klab import Klab
 from shapely import wkt
 
 LOGGER = logging.getLogger(__name__)
