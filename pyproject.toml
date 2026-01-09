@@ -11,6 +11,8 @@ dynamic = ["version"]
 # All direct python dependencies should be listed here. If a package is
 # available from conda-forge, it can also be listed under the conda_dependencies.
 dependencies = [
+  "taskgraph",
+  "pygeoprocessing",
   "natcap.invest>=3.17.0",
   "klab-client-py"
 ]
