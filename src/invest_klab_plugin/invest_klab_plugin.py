@@ -28,14 +28,15 @@ MODEL_SPEC = spec.ModelSpec(
     module_name=__name__,
     userguide='https://github.com/AM1729/invest-klab-plugin/blob/main/README.md',
     input_field_order=[
-        ['workspace_dir'],
+        ['workspace_dir', 'results_suffix'],
         ['kim_semantic_query'],
         ['spatial_context'],
         ['klab_certificate_path']],
 
     inputs=[
+        spec.WORKSPACE,
+        spec.SUFFIX,
         spec.N_WORKERS,
-
         spec.StringInput(
             id = "klab_certificate_path",
             name = gettext("Klab Certificate Path"),
