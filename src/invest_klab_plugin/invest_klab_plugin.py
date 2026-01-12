@@ -82,11 +82,10 @@ MODEL_SPEC = spec.ModelSpec(
             required=True
         ),
 
-        spec.NumberInput(
+        spec.StringInput(
             id='year',
             name="Year",
             about=gettext("Year of the observation"),
-            expression="(value >= 1900)",
             required=True
         )
     ],
@@ -141,7 +140,15 @@ def validate(args, limit_to=None):
             wkt.loads(args['spatial_context'])
         except wkt.WKTReadingError:
             raise ValueError('Invalid WKT format for spatial context')
-        
+
+    if 'year' in args:
+        try:
+            year = int(args['year'])
+            if year < 1900:
+                raise ValueError('Year must be 1900 or later')
+        except (ValueError, TypeError):
+            raise ValueError('Invalid year format')
+
     return validation.validate(args, MODEL_SPEC)
 
 async def ARIES_request(klab: Klab, area_WKT: str, obs_res: str, obs_year: int, observable: str,
