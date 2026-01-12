@@ -84,8 +84,9 @@ MODEL_SPEC = spec.ModelSpec(
 
         spec.NumberInput(
             id='year',
-            name=gettext("Year"),
+            name="Year",
             about=gettext("Year of the observation"),
+            expression="(value >= 1900)",
             required=True
         )
     ],
