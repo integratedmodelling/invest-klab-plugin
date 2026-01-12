@@ -104,7 +104,7 @@ def execute(args):
         asyncio.run(ARIES_request(
             klab=klab,
             area_WKT=spatial_context_wkt,
-            obs_res="10m",
+            obs_res="1 km",
             obs_year=2020,
             observable=semantic_query,
             export_format=ExportFormat.BYTESTREAM,
