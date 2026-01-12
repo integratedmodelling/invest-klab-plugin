@@ -68,8 +68,7 @@ MODEL_SPEC = spec.ModelSpec(
             about=gettext(
                 "Semantic Query based on kim, required to query the Klab Semantic Web"
                 "of GeoSpatial Data"),
-            required=True,
-            regexp="[a-zA-Z0-9_-]*"
+            required=True
         ),
 
         spec.StringInput(
