@@ -18,7 +18,7 @@ from klab.utils import Export, ExportFormat
 import asyncio
 import os
 from shapely import wkt
-from osgeo import ogr, osr
+import geopandas as gpd
 
 LOGGER = logging.getLogger(__name__)
 STANDARD_PATH = os.path.join(os.path.expanduser('~'), ".klab", "testcredentials.properties")
@@ -196,18 +196,24 @@ def get_klab_instance(fpath: str = STANDARD_PATH) -> Klab:
 
 
 def _check_lonlat_coords(vector_path):
-    '''
-    Validates that the AOI vector file uses geographic coordinates (longitude
-    and latitude in decimal degrees). Raises a ValueError if the coordinates
-    are not valid.
-    '''
-    ds = ogr.Open(vector_path)
-    layer = ds.GetLayer()
-    spatial_ref = layer.GetSpatialRef()
-    if spatial_ref is None:
-        raise ValueError("AOI vector file has no spatial reference system defined.")
+    """
+    Validates that the AOI vector file uses geographic coordinates 
+    (longitude and latitude in decimal degrees). Raises a ValueError if not.
+    Works with shapefiles, including zipped shapefiles.
+    """
+    # GeoPandas can read zipped shapefiles with the 'zip://' prefix
+    if vector_path.lower().endswith(".zip"):
+        gdf = gpd.read_file(f"zip://{vector_path}")
+    else:
+        gdf = gpd.read_file(vector_path)
+    
+    if gdf.crs is None:
+        raise ValueError(
+            "AOI vector file has no spatial reference system defined."
+        )
 
-    if not spatial_ref.IsGeographic():
+    # Check if CRS is geographic (degrees)
+    if not gdf.crs.is_geographic:
         raise ValueError(
             "The AOI vector file must use geographic coordinates (longitude "
             "and latitude in decimal degrees), such as WGS 84 (EPSG:4326). "
@@ -220,35 +226,11 @@ def build_spatial_context_wkt(vector_path):
     '''
     Builds a WKT representation of the spatial context from the given vector file.
     Assumes the vector file uses geographic coordinates (longitude and latitude in decimal degrees).
-    Uses GDAL's vsizip driver to read zipped shapefiles.
     Returns a string in the format "EPSG:4326 <WKT_GEOMETRY>, which is consumable for k.LAB".
     '''
-    ds = ogr.Open(f"/vsizip/{vector_path}")
-    if ds is None:
-        raise RuntimeError("Could not open ZIP shapefile")
 
-    layer = ds.GetLayer()
-    feature = layer.GetNextFeature()
-    if feature is None:
-        raise RuntimeError("No feature found in layer")
-
-    geom = feature.GetGeometryRef().Clone()
-
-    # Source CRS
-    source_srs = layer.GetSpatialRef()
-    if source_srs is None:
-        raise RuntimeError("Layer has no CRS")
-
-    # Target CRS EPSG:4326
-    target_srs = osr.SpatialReference()
-    target_srs.ImportFromEPSG(4326)
-
-    # Reproject only if needed
-    if not source_srs.IsSame(target_srs):
-        transform = osr.CoordinateTransformation(source_srs, target_srs)
-        geom.Transform(transform)
-
-    # Export geometry to WKT
-    wkt_geom = geom.ExportToWkt()
-
-    result = f"EPSG:4326 {wkt_geom}"
+    gdf = gpd.read_file(f"zip://{vector_path}")
+    if gdf.crs.to_epsg() != 4326:
+        gdf = gdf.to_crs(epsg=4326)
+    wkt_geom = gdf.geometry.iloc[0].wkt
+    return f"EPSG:4326 {wkt_geom}"
