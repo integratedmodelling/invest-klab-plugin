@@ -18,6 +18,7 @@ from klab.utils import Export, ExportFormat
 import asyncio
 import os
 from shapely import wkt
+from osgeo import ogr
 
 LOGGER = logging.getLogger(__name__)
 STANDARD_PATH = os.path.join(os.path.expanduser('~'), ".klab", "testcredentials.properties")
@@ -74,12 +75,17 @@ MODEL_SPEC = spec.ModelSpec(
             required=True
         ),
 
-        spec.StringInput(
+        spec.VectorInput(
             id='spatial_context',
-            name='Spatial Context (WKT) in EPSG:4326, WGS84 Datum',
+            name='Area of Interest',
             about=gettext(
-                'Spatial Context following the WKT Format.'),
-            required=True
+                'Path to a GDAL polygon vector representing the Area of Interest '
+                '(AOI). Coordinates represented by longitude, latitude decimal degrees '
+                '(e.g. WGS84).'),
+            required=True,
+            fields=[],
+            geometry_types={'POLYGON', 'MULTIPOLYGON'},
+            projected=True
         ),
 
         spec.StringInput(
@@ -106,7 +112,7 @@ def execute(args):
     klab_certificate_path = args.get('klab_certificate_path', None)
     year = int(args['year'])
     semantic_query = args['kim_semantic_query']
-    spatial_context_wkt = "EPSG:4326 " + args['spatial_context']
+    spatial_context_wkt = build_spatial_context_wkt(args['spatial_context'])
 
     LOGGER.info(f" Querying k.LAB Semantic Web with Query: {semantic_query}")
 
@@ -137,9 +143,9 @@ def execute(args):
 def validate(args, limit_to=None):
     if 'spatial_context' in args:
         try:
-            wkt.loads(args['spatial_context'])
-        except wkt.WKTReadingError:
-            raise ValueError('Invalid WKT format for spatial context')
+            _check_lonlat_coords(args['spatial_context'])
+        except ValueError as e:
+            raise ValueError('Invalid WKT format for spatial context: ' + str(e))
 
     if 'year' in args:
         try:
@@ -187,3 +193,36 @@ def get_klab_instance(fpath: str = STANDARD_PATH) -> Klab:
         raise EnvironmentError('could not establish connection to the klab instance')
 
     return klab
+
+
+def _check_lonlat_coords(vector_path):
+    '''
+    Validates that the AOI vector file uses geographic coordinates (longitude
+    and latitude in decimal degrees). Raises a ValueError if the coordinates
+    are not valid.
+    '''
+    ds = ogr.Open(vector_path)
+    layer = ds.GetLayer()
+    spatial_ref = layer.GetSpatialRef()
+    if spatial_ref is None:
+        raise ValueError("AOI vector file has no spatial reference system defined.")
+
+    if not spatial_ref.IsGeographic():
+        raise ValueError(
+            "The AOI vector file must use geographic coordinates (longitude "
+            "and latitude in decimal degrees), such as WGS 84 (EPSG:4326). "
+            "However, a projected coordinate system was found instead. To "
+            "fix this, reproject your vector data to EPSG:4326 (or similar)."
+        )
+    
+
+def build_spatial_context_wkt(vector_path):
+    '''
+    Builds a WKT representation of the spatial context from the given vector file.
+    Assumes the vector file uses geographic coordinates (longitude and latitude in decimal degrees).
+    '''
+    ds = ogr.Open(vector_path)
+    layer = ds.GetLayer()
+    geom = layer.GetSpatialRef()
+    wkt_representation = geom.ExportToWkt()
+    return "EPSG:4326 " + wkt_representation
